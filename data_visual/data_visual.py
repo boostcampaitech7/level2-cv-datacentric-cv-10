@@ -1,5 +1,5 @@
 import streamlit as st
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 import json
 import os
 
@@ -27,6 +27,8 @@ if 'index' not in st.session_state:
 
 def load_image_with_boxes(image_path, image_filename, line_width=5):
     image = Image.open(image_path).convert('RGB')
+    # EXIF 정보를 기준으로 이미지 회전 수정
+    image = ImageOps.exif_transpose(image)
     draw = ImageDraw.Draw(image)
 
     # 현재 이미지의 어노테이션 가져오기
