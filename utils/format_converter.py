@@ -152,21 +152,4 @@ def convert_format(input_path, output_path, conversion_type):
     # 변환 타입에 따른 처리
     if conversion_type == "to_xml":
         ufo_to_cvat_xml(input_path, output_path)
-    elif conversion_type == "to_json":
-        cvat_to_ufo(input_path, output_path)
-    else:
-        raise ValueError("지원하지 않는 변환 타입입니다.")
-    
-    print(f"변환 완료! 저장된 파일: {output_path}")
-
-if __name__ == "__main__":
-    # 커맨드라인 인자 파서 설정
-    parser = argparse.ArgumentParser(description='UFO-CVAT 형식 변환 유틸리티')
-    parser.add_argument('--input', type=str, required=True, help='입력 파일 경로')
-    parser.add_argument('--output', type=str, required=True, help='출력 파일 경로')
-    parser.add_argument('--type', type=str, required=True, 
-                        choices=['to_xml', 'to_json'],
-                        help='변환 타입 (to_xml: JSON/CSV → XML, to_json: XML → JSON)')
-    
-    args = parser.parse_args()
-    convert_format(args.input, args.output, args.type) 
+ 
