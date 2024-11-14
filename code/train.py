@@ -31,14 +31,15 @@ def parse_args():
 
     parser.add_argument('--device', default='cuda' if cuda.is_available() else 'cpu')
     parser.add_argument('--num_workers', type=int, default=8)
-
     parser.add_argument('--image_size', type=int, default=2048)
     parser.add_argument('--input_size', type=int, default=1024)
     parser.add_argument('--batch_size', type=int, default=2)
     parser.add_argument('--learning_rate', type=float, default=5e-3)
     parser.add_argument('--max_epoch', type=int, default=150)
     parser.add_argument('--save_interval', type=int, default=5)
-    parser.add_argument('--wandb_project', type=str, default='ocr')
+
+    parser.add_argument('--wandb_project', type=str, default='ocr_project')
+
     parser.add_argument('--fold', type=int, default=4)  # 현재 fold 번호
     parser.add_argument('--n_folds', type=int, default=5)  # 총 fold 수
 
@@ -51,6 +52,7 @@ def parse_args():
 
 def create_fold_datasets(dataset, fold_idx, n_folds):
     """데이터셋을 9:1로 분할하되, fold마다 다른 검증 세트 사용"""
+    # extractor: 기존 dataset, simple: 외부 dataset
     lang_data = {
         'chinese': {'extractor': [], 'simple': []},
         'japanese': {'extractor': [], 'simple': []},
@@ -62,7 +64,7 @@ def create_fold_datasets(dataset, fold_idx, n_folds):
     for idx in range(len(dataset)):
         fname = dataset.image_fnames[idx]
         
-        # 언어 판별 및 분류 (기존과 동일)
+        # 언어 판별 및 분류 
         if 'zh' in fname:
             lang = 'chinese'
         elif 'ja' in fname:
@@ -99,7 +101,7 @@ def create_fold_datasets(dataset, fold_idx, n_folds):
         random.shuffle(extractor_indices)
         random.shuffle(simple_indices)
         
-        # 각 언어별 검증 셋 크기 계산 (90:10 유지)
+        # 각 언어별 검증 셋 크기 계산 (90:10)
         lang_total = len(extractor_indices) + len(simple_indices)
         if lang_total == 0:
             continue
@@ -116,7 +118,7 @@ def create_fold_datasets(dataset, fold_idx, n_folds):
         val_extractor = extractor_indices[start_idx_extractor:start_idx_extractor + n_val_extractor]
         val_simple = simple_indices[start_idx_simple:start_idx_simple + n_val_simple]
         
-        # 나머지를 학습 세트로
+        # 나머지를 학습 세트로 선택
         train_extractor = [idx for idx in extractor_indices if idx not in val_extractor]
         train_simple = [idx for idx in simple_indices if idx not in val_simple]
         
@@ -124,7 +126,7 @@ def create_fold_datasets(dataset, fold_idx, n_folds):
         train_indices.extend(train_extractor + train_simple)
         val_indices.extend(val_extractor + val_simple)
         
-        # 통계 수집 (기존과 동일)
+        # 통계 수집 
         stats['languages'][lang] = {
             'train': {
                 'total': len(train_extractor) + len(train_simple),
@@ -188,7 +190,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
                 fold=0, n_folds=5):
     # WandB 초기화
     wandb.init(
-        project=args.wandb_project, 
+        project=wandb_project, 
         name=f"{wandb_project}_fold{fold}")
     
     # 기본 데이터셋 생성
@@ -229,16 +231,10 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
 
     # 기존 코드를 아래와 같이 변경
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = EAST(pretrained=False)  # 기본 가중치 로드하지 않음
-    
-    # 기존 학습된 모델 가중치 로드
-    pretrained_path = f'/data/ephemeral/home/cw/code/pths/CORD_best_model_iou.pth'
-    print(f"Loading pretrained weights from: {pretrained_path}")
-    model.load_state_dict(torch.load(pretrained_path))
-
+    model = EAST()  
     model.to(device)
     
-    # AdamW 옵티마이저로 변경
+    # AdamW 옵티마이저
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=learning_rate,
@@ -247,7 +243,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
         weight_decay=0.01
     )
     
-    # CosineAnnealingLR 스케줄러로 변경
+    # CosineAnnealingLR 스케줄러
     scheduler = lr_scheduler.CosineAnnealingLR(
         optimizer,
         T_max=max_epoch,  # 전체 에폭 수
@@ -255,7 +251,7 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
     )
 
     best_metric = float('inf')
-    patience = 50
+    patience = 20
     patience_counter = 0
     
     model.train()
