@@ -25,7 +25,7 @@ def parse_args():
     parser = ArgumentParser()
 
     # Conventional args
-    parser.add_argument('--data_dir', type=str, default='/data/ephemeral/home/CORD')
+    parser.add_argument('--data_dir', type=str, default='/data/CORD')
     parser.add_argument('--model_dir', type=str, default='trained_models')
     parser.add_argument('--device', default='cuda' if cuda.is_available() else 'cpu')
     parser.add_argument('--num_workers', type=int, default=8)
@@ -68,7 +68,7 @@ def load_dataset(root_dir, split, image_size, input_size, is_train=False):
 def do_training(data_dir, model_dir, device, image_size, input_size, num_workers, batch_size,
                 learning_rate, max_epoch, save_interval):
     # WandB 초기화
-    wandb.init(entity="zangzoo", project="CORD_training", name="CORD_augset2_Detection")
+    wandb.init(entity="Entitiy Name", project="CORD_training", name="CORD_augset2_Detection")
     
     train_dataset = load_dataset(data_dir, 'train', image_size, input_size, is_train=True)
     val_dataset = load_dataset(data_dir, 'dev', image_size, input_size, is_train=False)
