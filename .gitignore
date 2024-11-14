@@ -1,0 +1,8 @@
+# 가중치
+*.pth
+
+# venv
+/.venv/
+
+# data
+/data/
